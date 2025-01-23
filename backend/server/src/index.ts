@@ -7,6 +7,7 @@ import { Server, Socket } from "socket.io"
 
 import { ConnectionManager } from "./ConnectionManager"
 import { Sandbox } from "./Sandbox"
+import { socketAuth } from "./socketAuth"
 
 
 // Log errors and send a notification to the client
@@ -45,7 +46,8 @@ const io = new Server(httpServer, {
   },
 })
 
-// Middleware for socket authentication [Future]
+// Middleware for socket authentication
+io.use(socketAuth) 
 
 
 // Handle a client connecting to the server
