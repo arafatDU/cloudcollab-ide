@@ -5,6 +5,32 @@ import fs from "fs"
 import { createServer } from "http"
 import { Server, Socket } from "socket.io"
 
+import { ConnectionManager } from "./ConnectionManager"
+import { Sandbox } from "./Sandbox"
+
+
+// Log errors and send a notification to the client
+export const handleErrors = (message: string, error: any, socket: Socket) => {
+  console.error(message, error)
+  socket.emit("error", `${message} ${error.message ?? error}`)
+}
+
+// Handle uncaught exceptions
+process.on("uncaughtException", (error) => {
+  console.error("Uncaught Exception:", error)
+  // Do not exit the process
+})
+
+// Handle unhandled promise rejections
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason)
+  // Do not exit the process
+})
+
+// Initialize containers and managers
+const connections = new ConnectionManager()
+const sandboxes: Record<string, Sandbox> = {}
+
 // Load environment variables
 dotenv.config()
 
@@ -19,16 +45,97 @@ const io = new Server(httpServer, {
   },
 })
 
-// Middleware for socket authentication
-// io.use(socketAuth) // Use the new socketAuth middleware
+// Middleware for socket authentication [Future]
 
-io.on("connection", (socket: Socket) => {
-  console.log(`New client connected: ${socket.id}`)
 
-  socket.on("disconnect", () => {
-    console.log(`Client disconnected: ${socket.id}`)
-  })
+// Handle a client connecting to the server
+io.on("connection", async (socket) => {
+  try {
+    // This data comes is added by our authentication middleware
+    const data = socket.data as {
+      userId: string
+      sandboxId: string
+      isOwner: boolean
+      type: string
+    }
+
+    // Register the connection
+    connections.addConnectionForSandbox(socket, data.sandboxId, data.isOwner)
+
+    // Disable access unless the sandbox owner is connected
+    if (!data.isOwner && !connections.ownerIsConnected(data.sandboxId)) {
+      socket.emit("disableAccess", "The sandbox owner is not connected.")
+      return
+    }
+
+    try {
+      // Create or retrieve the sandbox manager for the given sandbox ID
+      const sandbox =
+        sandboxes[data.sandboxId] ??
+        new Sandbox(data.sandboxId, data.type, 
+          // Server context: [Future]
+        )
+      sandboxes[data.sandboxId] = sandbox
+
+      // When the file list changes sendFileNotifications [Future]
+      // Initialize the sandbox container [Future]
+
+      // Register event handlers for the sandbox
+      // For each event handler, listen on the socket for that event
+      // Pass connection-specific information to the handlers
+      Object.entries(
+        sandbox.handlers({
+          userId: data.userId,
+          isOwner: data.isOwner,
+          socket,
+        })
+      ).forEach(([event, handler]) => {
+        socket.on(
+          event,
+          async (options: any, callback?: (response: any) => void) => {
+            try {
+              const result = await handler(options)
+              callback?.(result)
+            } catch (e: any) {
+              handleErrors(`Error processing event "${event}":`, e, socket)
+            }
+          }
+        )
+      })
+
+      socket.emit("ready")
+
+      // Handle disconnection event
+      socket.on("disconnect", async () => {
+        try {
+          // Deregister the connection
+          connections.removeConnectionForSandbox(
+            socket,
+            data.sandboxId,
+            data.isOwner
+          )
+
+          // If the owner has disconnected from all sockets, close open terminals and file watchers.o
+          // The sandbox itself will timeout after the heartbeat stops.
+          if (data.isOwner && !connections.ownerIsConnected(data.sandboxId)) {
+            await sandbox.disconnect()
+            socket.broadcast.emit(
+              "disableAccess",
+              "The sandbox owner has disconnected."
+            )
+          }
+        } catch (e: any) {
+          handleErrors("Error disconnecting:", e, socket)
+        }
+      })
+    } catch (e: any) {
+      handleErrors(`Error initializing sandbox ${data.sandboxId}:`, e, socket)
+    }
+  } catch (e: any) {
+    handleErrors("Error connecting:", e, socket)
+  }
 })
+
 
 // Start the server
 httpServer.listen(port, () => {
