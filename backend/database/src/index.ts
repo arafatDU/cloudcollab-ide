@@ -151,10 +151,96 @@ export default {
         await env.STORAGE.fetch(initStorageRequest)
 
         return new Response(sb.id, { status: 200 })
-            
+
       } else {
         return methodNotAllowed
       }
+    } else if (path === "/api/sandbox/share") {
+      if (method === "GET") {
+        const params = url.searchParams
+        if (params.has("id")) {
+          const id = params.get("id") as string
+          const res = await db.query.usersToSandboxes.findMany({
+            where: (uts, { eq }) => eq(uts.userId, id),
+          })
+
+          const owners = await Promise.all(
+            res.map(async (r) => {
+              const sb = await db.query.sandbox.findFirst({
+                where: (sandbox, { eq }) => eq(sandbox.id, r.sandboxId),
+                with: {
+                  author: true,
+                },
+              })
+              if (!sb) return
+              return {
+                id: sb.id,
+                name: sb.name,
+                type: sb.type,
+                author: sb.author.name,
+                authorAvatarUrl: sb.author.avatarUrl,
+                sharedOn: r.sharedOn,
+              }
+            })
+          )
+
+          return json(owners ?? {})
+        } else return invalidRequest
+      } else if (method === "POST") {
+        const shareSchema = z.object({
+          sandboxId: z.string(),
+          email: z.string(),
+        })
+
+        const body = await request.json()
+        const { sandboxId, email } = shareSchema.parse(body)
+
+        const user = await db.query.user.findFirst({
+          where: (user, { eq }) => eq(user.email, email),
+          with: {
+            sandbox: true,
+            usersToSandboxes: true,
+          },
+        })
+
+        if (!user) {
+          return new Response("No user associated with email.", { status: 400 })
+        }
+
+        if (user.sandbox.find((sb) => sb.id === sandboxId)) {
+          return new Response("Cannot share with yourself!", { status: 400 })
+        }
+
+        if (user.usersToSandboxes.find((uts) => uts.sandboxId === sandboxId)) {
+          return new Response("User already has access.", { status: 400 })
+        }
+
+        await db
+          .insert(usersToSandboxes)
+          .values({ userId: user.id, sandboxId, sharedOn: new Date() })
+          .get()
+
+        return success
+      } else if (method === "DELETE") {
+        const deleteShareSchema = z.object({
+          sandboxId: z.string(),
+          userId: z.string(),
+        })
+
+        const body = await request.json()
+        const { sandboxId, userId } = deleteShareSchema.parse(body)
+
+        await db
+          .delete(usersToSandboxes)
+          .where(
+            and(
+              eq(usersToSandboxes.userId, userId),
+              eq(usersToSandboxes.sandboxId, sandboxId)
+            )
+          )
+
+        return success
+      } else return methodNotAllowed
     } else return notFound 
   },
 };
