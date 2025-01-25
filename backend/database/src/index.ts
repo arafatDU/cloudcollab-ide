@@ -241,6 +241,268 @@ export default {
 
         return success
       } else return methodNotAllowed
+    } else if (path === "/api/user") {
+      if (method === "GET") {
+        const params = url.searchParams
+
+        if (params.has("id")) {
+          const id = params.get("id") as string
+
+          const res = await db.query.user.findFirst({
+            where: (user, { eq }) => eq(user.id, id),
+            with: {
+              sandbox: {
+                orderBy: (sandbox, { desc }) => [desc(sandbox.createdAt)],
+                with: {
+                  likes: true,
+                },
+              },
+              usersToSandboxes: true,
+            },
+          })
+          if (res) {
+            const transformedUser: UserResponse = {
+              ...res,
+              sandbox: res.sandbox.map(
+                (sb): SandboxWithLiked => ({
+                  ...sb,
+                  liked: sb.likes.some((like) => like.userId === id),
+                })
+              ),
+            }
+            return json(transformedUser)
+          }
+          return json(res ?? {})
+        } else if (params.has("username")) {
+          const username = params.get("username") as string
+          const userId = params.get("currentUserId")
+          const res = await db.query.user.findFirst({
+            where: (user, { eq }) => eq(user.username, username),
+            with: {
+              sandbox: {
+                orderBy: (sandbox, { desc }) => [desc(sandbox.createdAt)],
+                with: {
+                  likes: true,
+                },
+              },
+              usersToSandboxes: true,
+            },
+          })
+          if (res) {
+            const transformedUser: UserResponse = {
+              ...res,
+              sandbox: res.sandbox.map(
+                (sb): SandboxWithLiked => ({
+                  ...sb,
+                  liked: sb.likes.some((like) => like.userId === userId),
+                })
+              ),
+            }
+            return json(transformedUser)
+          }
+          return json(res ?? {})
+        } else {
+          const res = await db.select().from(user).all()
+          return json(res ?? {})
+        }
+      } else if (method === "POST") {
+        const userSchema = z.object({
+          id: z.string(),
+          name: z.string(),
+          email: z.string().email(),
+          username: z.string(),
+          avatarUrl: z.string().optional(),
+          createdAt: z.string().optional(),
+          generations: z.number().optional(),
+          tier: z.enum(["FREE", "PRO", "ENTERPRISE"]).optional(),
+          tierExpiresAt: z.number().optional(),
+          lastResetDate: z.number().optional(),
+        })
+
+        const body = await request.json()
+
+        const {
+          id,
+          name,
+          email,
+          username,
+          avatarUrl,
+          createdAt,
+          generations,
+          tier,
+          tierExpiresAt,
+          lastResetDate,
+        } = userSchema.parse(body)
+        const res = await db
+          .insert(user)
+          .values({
+            id,
+            name,
+            email,
+            username,
+            avatarUrl,
+            createdAt: createdAt ? new Date(createdAt) : new Date(),
+            generations,
+            tier,
+            tierExpiresAt,
+            lastResetDate,
+          })
+          .returning()
+          .get()
+        return json({ res })
+      } else if (method === "DELETE") {
+        const params = url.searchParams
+        if (params.has("id")) {
+          const id = params.get("id") as string
+          await db.delete(user).where(eq(user.id, id))
+          return success
+        } else return invalidRequest
+      } else if (method === "PUT") {
+        const updateUserSchema = z.object({
+          id: z.string(),
+          name: z.string().optional(),
+          email: z.string().email().optional(),
+          username: z.string().optional(),
+          avatarUrl: z.string().optional(),
+          generations: z.number().optional(),
+        })
+
+        try {
+          const body = await request.json()
+          const validatedData = updateUserSchema.parse(body)
+
+          const { id, username, ...updateData } = validatedData
+
+          // If username is being updated, check for existing username
+          if (username) {
+            const existingUser = await db
+              .select()
+              .from(user)
+              .where(eq(user.username, username))
+              .get()
+            if (existingUser && existingUser.id !== id) {
+              return json({ error: "Username already exists" }, { status: 409 })
+            }
+          }
+
+          const cleanUpdateData = {
+            ...updateData,
+            ...(username ? { username } : {}),
+          }
+
+          const res = await db
+            .update(user)
+            .set(cleanUpdateData)
+            .where(eq(user.id, id))
+            .returning()
+            .get()
+
+          if (!res) {
+            return json({ error: "User not found" }, { status: 404 })
+          }
+
+          return json({ res })
+        } catch (error) {
+          if (error instanceof z.ZodError) {
+            return json({ error: error.errors }, { status: 400 })
+          }
+          return json({ error: "Internal server error" }, { status: 500 })
+        }
+      } else {
+        return methodNotAllowed
+      }
+    } else if (path === "/api/user/check-username") {
+      if (method === "GET") {
+        const params = url.searchParams
+        const username = params.get("username")
+
+        if (!username) return invalidRequest
+
+        const exists = await db.query.user.findFirst({
+          where: (user, { eq }) => eq(user.username, username),
+        })
+
+        return json({ exists: !!exists })
+      }
+      return methodNotAllowed
+    } else if (
+      path === "/api/user/increment-generations" &&
+      method === "POST"
+    ) {
+      const schema = z.object({
+        userId: z.string(),
+      })
+
+      const body = await request.json()
+      const { userId } = schema.parse(body)
+
+      await db
+        .update(user)
+        .set({ generations: sql`${user.generations} + 1` })
+        .where(eq(user.id, userId))
+        .get()
+
+      return success
+    } else if (path === "/api/user/update-tier" && method === "POST") {
+      const schema = z.object({
+        userId: z.string(),
+        tier: z.enum(["FREE", "PRO", "ENTERPRISE"]),
+        tierExpiresAt: z.date(),
+      })
+
+      const body = await request.json()
+      const { userId, tier, tierExpiresAt } = schema.parse(body)
+
+      await db
+        .update(user)
+        .set({
+          tier,
+          tierExpiresAt: tierExpiresAt.getTime(),
+          // Reset generations when upgrading tier
+          generations: 0,
+        })
+        .where(eq(user.id, userId))
+        .get()
+
+      return success
+    } else if (path === "/api/user/check-reset" && method === "POST") {
+      const schema = z.object({
+        userId: z.string(),
+      })
+
+      const body = await request.json()
+      const { userId } = schema.parse(body)
+
+      const dbUser = await db.query.user.findFirst({
+        where: (user, { eq }) => eq(user.id, userId),
+      })
+
+      if (!dbUser) {
+        return new Response("User not found", { status: 404 })
+      }
+
+      const now = new Date()
+      const lastReset = dbUser.lastResetDate
+        ? new Date(dbUser.lastResetDate)
+        : new Date(0)
+
+      if (
+        now.getMonth() !== lastReset.getMonth() ||
+        now.getFullYear() !== lastReset.getFullYear()
+      ) {
+        await db
+          .update(user)
+          .set({
+            generations: 0,
+            lastResetDate: now.getTime(),
+          })
+          .where(eq(user.id, userId))
+          .get()
+
+        return new Response("Reset successful", { status: 200 })
+      }
+
+      return new Response("No reset needed", { status: 200 })
     } else return notFound 
   },
 };
