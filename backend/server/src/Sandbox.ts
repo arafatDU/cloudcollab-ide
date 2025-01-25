@@ -109,13 +109,109 @@ export class Sandbox {
       console.log("Getting folder", folderId);
     }
 
-    
+    // Handle saving a file
+    const handleSaveFile: SocketHandler = async ({ fileId, body }: any) => {
+      console.log("Saving file", fileId);
+    }
+
+    // Handle moving a file
+    const handleMoveFile: SocketHandler = ({ fileId, folderId }: any) => {
+      console.log("Moving file", fileId, folderId);
+    }
+
+    // Handle listing apps
+    const handleListApps: SocketHandler = async (_: any) => {
+      console.log("Listing apps");
+    }
+
+    // Handle getting app creation timestamp
+    const handleGetAppCreatedAt: SocketHandler = async ({ appName }) => {
+      console.log("Getting app creation time", appName);
+    }
+
+    // Handle checking if an app exists
+    const handleAppExists: SocketHandler = async ({ appName }) => {
+      console.log("Checking if app exists", appName);
+    }
+
+    // Handle deploying code
+    const handleDeploy: SocketHandler = async (_: any) => {
+      console.log("Deploying code");
+    }
+
+    // Handle creating a file
+    const handleCreateFile: SocketHandler = async ({ name }: any) => {
+      console.log("Creating file", name);
+    }
+
+    // Handle creating a folder
+    const handleCreateFolder: SocketHandler = async ({ name }: any) => {
+      console.log("Creating folder", name);
+    }
+
+    // Handle renaming a file
+    const handleRenameFile: SocketHandler = async ({
+      fileId,
+      newName,
+    }: any) => {
+      console.log("Renaming file", fileId, newName);
+    }
+
+    // Handle deleting a file
+    const handleDeleteFile: SocketHandler = async ({ fileId }: any) => {
+      console.log("Deleting file", fileId);
+    }
+
+    // Handle deleting a folder
+    const handleDeleteFolder: SocketHandler = ({ folderId }: any) => {
+      console.log("Deleting folder", folderId);
+    }
+
+    // Handle creating a terminal session
+    const handleCreateTerminal: SocketHandler = async ({ id }: any) => {
+      console.log("Creating terminal", id);
+    }
+
+    // Handle resizing a terminal
+    const handleResizeTerminal: SocketHandler = ({ dimensions }: any) => {
+      console.log("Resizing terminal", dimensions);
+    }
+
+    // Handle sending data to a terminal
+    const handleTerminalData: SocketHandler = ({ id, data }: any) => {
+      console.log("Sending data to terminal", id, data);
+    }
+
+    // Handle closing a terminal
+    const handleCloseTerminal: SocketHandler = ({ id }: any) => {
+      console.log("Closing terminal", id);
+    }
+
+    // Handle downloading files by download button
+    const handleDownloadFiles: SocketHandler = async () => {
+      console.log("Downloading files");
+    }
 
     return {
       heartbeat: handleHeartbeat,
       getFile: handleGetFile,
       getFolder: handleGetFolder,
-      // Add more handlers here
+      downloadFiles: handleDownloadFiles,
+      saveFile: handleSaveFile,
+      moveFile: handleMoveFile,
+      listApps: handleListApps,
+      getAppCreatedAt: handleGetAppCreatedAt,
+      getAppExists: handleAppExists,
+      deploy: handleDeploy,
+      createFile: handleCreateFile,
+      createFolder: handleCreateFolder,
+      renameFile: handleRenameFile,
+      deleteFile: handleDeleteFile,
+      deleteFolder: handleDeleteFolder,
+      createTerminal: handleCreateTerminal,
+      resizeTerminal: handleResizeTerminal,
+      terminalData: handleTerminalData,
+      closeTerminal: handleCloseTerminal,
     }
   }
 }
