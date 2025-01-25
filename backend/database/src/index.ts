@@ -50,16 +50,46 @@ export default {
 
     if (path === "/api/sandbox") {
       if (method === "GET") {
-
-        // Get all sandboxes
-        return success
-
+        const params = url.searchParams
+        if (params.has("id")) {
+          const id = params.get("id") as string
+          const res = await db.query.sandbox.findFirst({
+            where: (sandbox, { eq }) => eq(sandbox.id, id),
+            with: {
+              usersToSandboxes: true,
+            },
+          })
+          return json(res ?? {})
+        } else {
+          const res = await db.select().from(sandbox).all()
+          return json(res ?? {})
+        }
       } else if (method === "DELETE") {
-        
-        // Delete a sandbox
-        return success
+        const params = url.searchParams
+        if (params.has("id")) {
+          const id = params.get("id") as string
+          await db
+            .delete(usersToSandboxes)
+            .where(eq(usersToSandboxes.sandboxId, id))
+          await db.delete(sandbox).where(eq(sandbox.id, id))
 
+          const deleteStorageRequest = new Request(
+            `${env.STORAGE_WORKER_URL}/api/project`,
+            {
+              method: "DELETE",
+              body: JSON.stringify({ sandboxId: id }),
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `${env.KEY}`,
+              },
+            }
+          )
+          await env.STORAGE.fetch(deleteStorageRequest)
 
+          return success
+        } else {
+          return invalidRequest
+        }
       } else if (method === "POST") {
         const postSchema = z.object({
           id: z.string(),
@@ -78,11 +108,50 @@ export default {
 
         return success
       } else if (method === "PUT") {
-        
-        // Update a sandbox
-        return success
+        const initSchema = z.object({
+          type: z.string(),
+          name: z.string(),
+          userId: z.string(),
+          visibility: z.enum(["public", "private"]),
+        })
 
-        
+        const body = await request.json()
+        const { type, name, userId, visibility } = initSchema.parse(body)
+
+        const userSandboxes = await db
+          .select()
+          .from(sandbox)
+          .where(eq(sandbox.userId, userId))
+          .all()
+
+        if (userSandboxes.length >= 8) {
+          return new Response("You reached the maximum # of sandboxes.", {
+            status: 400,
+          })
+        }
+
+        const sb = await db
+          .insert(sandbox)
+          .values({ type, name, userId, visibility, createdAt: new Date() })
+          .returning()
+          .get()
+
+        const initStorageRequest = new Request(
+          `${env.STORAGE_WORKER_URL}/api/init`,
+          {
+            method: "POST",
+            body: JSON.stringify({ sandboxId: sb.id, type }),
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `${env.KEY}`,
+            },
+          }
+        )
+
+        await env.STORAGE.fetch(initStorageRequest)
+
+        return new Response(sb.id, { status: 200 })
+            
       } else {
         return methodNotAllowed
       }
