@@ -24,11 +24,28 @@ export const socketAuth = async (socket: Socket, next: Function) => {
   
 
   const { sandboxId, userId } = parseQuery.data
-  // Fetch user data from the database [Future]
-  const dbUserJSON = {} as User
+  // Fetch user data from the database
+  const dbUser = await fetch(
+    `${process.env.DATABASE_WORKER_URL}/api/user?id=${userId}`,
+    {
+      headers: {
+        Authorization: `${process.env.WORKERS_KEY}`,
+      },
+    }
+  )
+  const dbUserJSON = (await dbUser.json()) as User
 
-  // Fetch sandbox data from the database [Future]
-  const dbSandboxJSON = {} as Sandbox
+
+  // Fetch sandbox data from the database
+  const dbSandbox = await fetch(
+    `${process.env.DATABASE_WORKER_URL}/api/sandbox?id=${sandboxId}`,
+    {
+      headers: {
+        Authorization: `${process.env.WORKERS_KEY}`,
+      },
+    }
+  )
+  const dbSandboxJSON = (await dbSandbox.json()) as Sandbox
 
 
 
