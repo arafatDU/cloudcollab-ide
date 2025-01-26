@@ -2,7 +2,13 @@ import { Sandbox as E2BSandbox } from "e2b"
 import { Socket } from "socket.io"
 
 const CONTAINER_TIMEOUT = 120_000
-import { saveFileRL } from "./ratelimit"
+import { 
+  saveFileRL,
+  createFileRL,
+  createFolderRL,
+  renameFileRL,
+  deleteFileRL,
+} from "./ratelimit"
 import { FileManager } from "./FileManager"
 import { TerminalManager } from "./TerminalManager"
 import { TFile, TFolder } from "./types"
@@ -117,7 +123,7 @@ export class Sandbox {
 
     // Handle moving a file
     const handleMoveFile: SocketHandler = ({ fileId, folderId }: any) => {
-      // return this.fileManager?.moveFile(fileId, folderId)
+      return this.fileManager?.moveFile(fileId, folderId)
     }
 
     // Handle listing apps
@@ -142,14 +148,14 @@ export class Sandbox {
 
     // Handle creating a file
     const handleCreateFile: SocketHandler = async ({ name }: any) => {
-      // await createFileRL.consume(connection.userId, 1)
-      // return { success: await this.fileManager?.createFile(name) }
+      await createFileRL.consume(connection.userId, 1)
+      return { success: await this.fileManager?.createFile(name) }
     }
 
     // Handle creating a folder
     const handleCreateFolder: SocketHandler = async ({ name }: any) => {
-      // await createFolderRL.consume(connection.userId, 1)
-      // return { success: await this.fileManager?.createFolder(name) }
+      await createFolderRL.consume(connection.userId, 1)
+      return { success: await this.fileManager?.createFolder(name) }
     }
 
     // Handle renaming a file
@@ -157,19 +163,19 @@ export class Sandbox {
       fileId,
       newName,
     }: any) => {
-      // await renameFileRL.consume(connection.userId, 1)
-      // return this.fileManager?.renameFile(fileId, newName)
+      await renameFileRL.consume(connection.userId, 1)
+      return this.fileManager?.renameFile(fileId, newName)
     }
 
     // Handle deleting a file
     const handleDeleteFile: SocketHandler = async ({ fileId }: any) => {
-      // await deleteFileRL.consume(connection.userId, 1)
-      // return this.fileManager?.deleteFile(fileId)
+      await deleteFileRL.consume(connection.userId, 1)
+      return this.fileManager?.deleteFile(fileId)
     }
 
     // Handle deleting a folder
     const handleDeleteFolder: SocketHandler = ({ folderId }: any) => {
-      console.log("Deleting folder", folderId);
+      return this.fileManager?.deleteFolder(folderId)
     }
 
     // Handle creating a terminal session
@@ -194,7 +200,12 @@ export class Sandbox {
 
     // Handle downloading files by download button
     const handleDownloadFiles: SocketHandler = async () => {
-      console.log("Downloading file")
+      if (!this.fileManager) throw Error("No file manager")
+
+        // Get the Base64 encoded ZIP string
+        const zipBase64 = await this.fileManager.getFilesForDownload()
+  
+        return { zipBlob: zipBase64 }
     }
 
     return {

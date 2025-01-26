@@ -430,7 +430,44 @@ export class FileManager {
     return this.fileData
   }
 
-  
+  public async getFilesForDownload(): Promise<string> {
+    // Create new JSZip instance
+    const zip = new JSZip()
+
+    await this.loadFileContent()
+
+    if (this.fileData.length === 0) {
+      console.error(
+        "No files found in the sandbox project directory for download."
+      )
+      return ""
+    }
+
+    // Add files to zip with synchronized content
+    for (const fileDataEntry of this.fileData) {
+      const relativePath = fileDataEntry.id
+      const content = fileDataEntry.data
+      zip.file(relativePath, content)
+      console.log(`Added file to ZIP: ${relativePath}`)
+    }
+
+    // Generate zip file
+    const zipBlob = await zip.generateAsync({
+      type: "blob",
+      compression: "DEFLATE",
+      compressionOptions: {
+        level: 6,
+      },
+    })
+
+    // Convert Blob to Base64
+    const zipBlobArrayBuffer = await zipBlob.arrayBuffer()
+    const zipBlobBase64 = btoa(
+      String.fromCharCode(...new Uint8Array(zipBlobArrayBuffer))
+    )
+
+    return zipBlobBase64
+  }
 
   // Create a new folder
   async createFolder(name: string): Promise<void> {
