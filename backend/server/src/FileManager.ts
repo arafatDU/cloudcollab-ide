@@ -112,7 +112,7 @@ export class FileManager {
 
   // Download files from remote storage
   private async updateFileData(): Promise<TFileData[]> {
-    const remotePaths = ["This will be fetch from Storage Worker ",]  // Fetch from storage [Future]
+    const remotePaths = await RemoteFileStorage.getSandboxPaths(this.sandboxId)
     const localPaths = this.getLocalFileIds(remotePaths)
     this.fileData = await this.generateFileData(localPaths)
     return this.fileData
@@ -120,7 +120,7 @@ export class FileManager {
 
   // Update file structure
   private async updateFileStructure(): Promise<(TFolder | TFile)[]> {
-    const remotePaths = ["This will be fetch from Storage Worker ",]  // Fetch from storage [Future]
+    const remotePaths = await RemoteFileStorage.getSandboxPaths(this.sandboxId)
     const localPaths = this.getLocalFileIds(remotePaths)
     this.files = generateFileStructure(localPaths)
     return this.files
@@ -316,7 +316,9 @@ export class FileManager {
 
   // Get folder content
   async getFolder(folderId: string): Promise<string[]> {
-    const remotePaths = ["This will be fetch from Storage Worker ",]  // Fetch from storage [Future]
+    const remotePaths = await RemoteFileStorage.getFolder(
+      this.getRemoteFileId(folderId)
+    )
     return this.getLocalFileIds(remotePaths)
   }
 

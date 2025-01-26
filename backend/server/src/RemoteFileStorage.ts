@@ -1,9 +1,37 @@
 import * as dotenv from  "dotenv"
-
+import { R2Files } from "./types"
 
 dotenv.config()
 
 export const RemoteFileStorage = {
+  getSandboxPaths: async (id: string) => {
+    const res = await fetch(
+      `${process.env.STORAGE_WORKER_URL}/api?sandboxId=${id}`,
+      {
+        headers: {
+          Authorization: `${process.env.WORKERS_KEY}`,
+        },
+      }
+    )
+    const data: R2Files = await res.json()
+
+    return data.objects.map((obj) => obj.key)
+  },
+
+  getFolder: async (folderId: string) => {
+    const res = await fetch(
+      `${process.env.STORAGE_WORKER_URL}/api?folderId=${folderId}`,
+      {
+        headers: {
+          Authorization: `${process.env.WORKERS_KEY}`,
+        },
+      }
+    )
+    const data: R2Files = await res.json()
+
+    return data.objects.map((obj) => obj.key)
+  },
+
   fetchFileContent: async (fileId: string): Promise<string> => {
     try {
       const fileRes = await fetch(
