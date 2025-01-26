@@ -8,6 +8,7 @@ import { Server, Socket } from "socket.io"
 import { ConnectionManager } from "./ConnectionManager"
 import { Sandbox } from "./Sandbox"
 import { socketAuth } from "./socketAuth"
+import { TFile, TFolder } from "./types"
 
 
 // Log errors and send a notification to the client
@@ -79,8 +80,19 @@ io.on("connection", async (socket) => {
         )
       sandboxes[data.sandboxId] = sandbox
 
-      // When the file list changes sendFileNotifications [Future]
-      // Initialize the sandbox container [Future]
+      // This callback recieves an update when the file list changes, and notifies all relevant connections.
+      const sendFileNotifications = (files: (TFolder | TFile)[]) => {
+        connections
+          .connectionsForSandbox(data.sandboxId)
+          .forEach((socket: Socket) => {
+            socket.emit("loaded", files)
+          })
+      }
+
+      // Initialize the sandbox container
+      // The file manager and terminal managers will be set up if they have been closed
+      await sandbox.initialize(sendFileNotifications)
+      socket.emit("loaded", sandbox.fileManager?.files)
 
       // Register event handlers for the sandbox
       // For each event handler, listen on the socket for that event

@@ -1,8 +1,8 @@
 import { FilesystemEvent, Sandbox, WatchHandle } from "e2b"
 import JSZip from "jszip"
 import path from "path"
-
-export const MAX_BODY_SIZE = 5 * 1024 * 1024
+import RemoteFileStorage from "./RemoteFileStorage"
+const MAX_BODY_SIZE = 5 * 1024 * 1024
 import { TFile, TFileData, TFolder } from "./types"
 
 
@@ -76,8 +76,18 @@ export class FileManager {
   private async generateFileData(paths: string[]): Promise<TFileData[]> {
     const fileData: TFileData[] = []
 
-    // Fetch file data from storage worker's R2 storage [Future]
+    for (const path of paths) {
+      const parts = path.split("/")
+      const isFile = parts.length > 0 && parts[parts.length - 1].length > 0
 
+      if (isFile) {
+        const fileId = `/${parts.join("/")}`
+        const data = await RemoteFileStorage.fetchFileContent(
+          `projects/${this.sandboxId}${fileId}`
+        )
+        fileData.push({ id: fileId, data })
+      }
+    }
     return fileData
   }
   
