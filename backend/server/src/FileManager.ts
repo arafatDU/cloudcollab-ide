@@ -335,7 +335,146 @@ export class FileManager {
     this.fixPermissions()
   }
 
+  // Move a file to a different folder
+  async moveFile(
+    fileId: string,
+    folderId: string
+  ): Promise<(TFolder | TFile)[]> {
+    const fileData = this.fileData.find((f) => f.id === fileId)
+    const file = this.files.find((f) => f.id === fileId)
+    if (!fileData || !file) return this.files
 
+    const parts = fileId.split("/")
+    const newFileId = folderId + "/" + parts.pop()
+
+    await this.moveFileInContainer(fileId, newFileId)
+
+    await this.fixPermissions()
+
+    fileData.id = newFileId
+    file.id = newFileId
+
+    // Rename file in storage worker [Future]
+
+    return this.updateFileStructure()
+  }
+
+  // Move a file within the container
+  private async moveFileInContainer(oldPath: string, newPath: string) {
+    try {
+      const fileContents = await this.sandbox.files.read(
+        path.posix.join(this.dirName, oldPath)
+      )
+      await this.sandbox.files.write(
+        path.posix.join(this.dirName, newPath),
+        fileContents
+      )
+      await this.sandbox.files.remove(path.posix.join(this.dirName, oldPath))
+    } catch (e) {
+      console.error(`Error moving file from ${oldPath} to ${newPath}:`, e)
+    }
+  }
+
+  // Create a new file
+  async createFile(name: string): Promise<boolean> {
+    const size: number = 200  // Fetch project size from storage worker [Future]
+    if (size > 200 * 1024 * 1024) {
+      throw new Error("Project size exceeded. Please delete some files.")
+    }
+
+    const id = `/${name}`
+
+    await this.sandbox.files.write(path.posix.join(this.dirName, id), "")
+    await this.fixPermissions()
+
+    // Create file into storage worker [Future]
+
+    return true
+  }
+
+  public async loadFileContent(): Promise<TFileData[]> {
+    // Get all file paths, excluding node_modules
+    const result = await this.sandbox.commands.run(
+      `find "${this.dirName}" -path "${this.dirName}/node_modules" -prune -o -type f -print`
+    )
+    const filePaths = result.stdout.split("\n").filter((path) => path) ?? []
+
+    console.log("Paths found for download (excluding node_modules):", filePaths)
+
+    // Add files to zip with synchronized content
+    for (const filePath of filePaths) {
+      const relativePath = filePath.replace(this.dirName, "") // Remove base directory from path
+      try {
+        // Read the file content from the sandbox
+        const content = await this.sandbox.files.read(filePath)
+
+        // Find the existing file data entry or create a new one
+        const fileDataEntry = this.fileData.find(
+          (f) => f.id === relativePath
+        ) || {
+          id: relativePath,
+          data: typeof content === "string" ? content : "",
+        }
+
+        // Update the file data entry if it already exists, otherwise add it to the list
+        if (!this.fileData.includes(fileDataEntry)) {
+          this.fileData.push(fileDataEntry)
+        } else {
+          fileDataEntry.data = typeof content === "string" ? content : ""
+        }
+      } catch (error) {
+        console.error(`Failed to read content for ${relativePath}:`, error)
+      }
+    }
+
+    return this.fileData
+  }
+
+  
+
+  // Create a new folder
+  async createFolder(name: string): Promise<void> {
+    const id = `/${name}`
+    await this.sandbox.files.makeDir(path.posix.join(this.dirName, id))
+  }
+
+  // Rename a file
+  async renameFile(fileId: string, newName: string): Promise<void> {
+    const fileData = this.fileData.find((f) => f.id === fileId)
+    const file = this.files.find((f) => f.id === fileId)
+    if (!fileData || !file) return
+
+    const parts = fileId.split("/")
+    const newFileId = parts.slice(0, parts.length - 1).join("/") + "/" + newName
+
+    await this.moveFileInContainer(fileId, newFileId)
+    await this.fixPermissions()
+    
+    // Rename into storage worker [Future]
+
+    fileData.id = newFileId
+    file.id = newFileId
+  }
+
+  // Delete a file
+  async deleteFile(fileId: string): Promise<(TFolder | TFile)[]> {
+    const file = this.fileData.find((f) => f.id === fileId)
+    if (!file) return this.files
+
+    await this.sandbox.files.remove(path.posix.join(this.dirName, fileId))
+
+    // Delete form storage worker [Future]
+
+    return this.updateFileStructure()
+  }
+
+  // Delete a folder
+  async deleteFolder(folderId: string): Promise<(TFolder | TFile)[]> {
+    
+    // Delete from storage worker [Future]
+
+    return this.updateFileStructure()
+  }
 
   // Close all file watchers
   async closeWatchers() {
