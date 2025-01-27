@@ -329,7 +329,7 @@ export class FileManager {
     if (Buffer.byteLength(body, "utf-8") > MAX_BODY_SIZE) {
       throw new Error("File size too large. Please reduce the file size.")
     }
-    // Save to storage worker [Future]
+    await RemoteFileStorage.saveFile(this.getRemoteFileId(fileId), body)
 
     let file = this.fileData.find((f) => f.id === fileId)
     if (file) {
@@ -366,7 +366,11 @@ export class FileManager {
     fileData.id = newFileId
     file.id = newFileId
 
-    // Rename file in storage worker [Future]
+    await RemoteFileStorage.renameFile(
+      this.getRemoteFileId(fileId),
+      this.getRemoteFileId(newFileId),
+      fileData.data
+    )
 
     return this.updateFileStructure()
   }
@@ -389,7 +393,7 @@ export class FileManager {
 
   // Create a new file
   async createFile(name: string): Promise<boolean> {
-    const size: number = 200  // Fetch project size from storage worker [Future]
+    const size: number = await RemoteFileStorage.getProjectSize(this.sandboxId)
     if (size > 200 * 1024 * 1024) {
       throw new Error("Project size exceeded. Please delete some files.")
     }
@@ -399,7 +403,7 @@ export class FileManager {
     await this.sandbox.files.write(path.posix.join(this.dirName, id), "")
     await this.fixPermissions()
 
-    // Create file into storage worker [Future]
+    await RemoteFileStorage.createFile(this.getRemoteFileId(id))
 
     return true
   }
@@ -499,7 +503,11 @@ export class FileManager {
     await this.moveFileInContainer(fileId, newFileId)
     await this.fixPermissions()
     
-    // Rename into storage worker [Future]
+    await RemoteFileStorage.renameFile(
+      this.getRemoteFileId(fileId),
+      this.getRemoteFileId(newFileId),
+      fileData.data
+    )
 
     fileData.id = newFileId
     file.id = newFileId
@@ -512,15 +520,22 @@ export class FileManager {
 
     await this.sandbox.files.remove(path.posix.join(this.dirName, fileId))
 
-    // Delete form storage worker [Future]
-
+    await RemoteFileStorage.deleteFile(this.getRemoteFileId(fileId))
     return this.updateFileStructure()
   }
 
   // Delete a folder
   async deleteFolder(folderId: string): Promise<(TFolder | TFile)[]> {
-    
-    // Delete from storage worker [Future]
+    const files = await RemoteFileStorage.getFolder(
+      this.getRemoteFileId(folderId)
+    )
+
+    await Promise.all(
+      files.map(async (file) => {
+        await this.sandbox.files.remove(path.posix.join(this.dirName, file))
+        await RemoteFileStorage.deleteFile(this.getRemoteFileId(file))
+      })
+    )
 
     return this.updateFileStructure()
   }
