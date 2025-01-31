@@ -92,8 +92,14 @@ export class Sandbox {
 
   // Called when the client disconnects from the Sandbox
   async disconnect() {
-    console.log("Disconnecting sandbox", this.sandboxId);
-    // Disconnect the sandbox container
+    // Close all terminals managed by the terminal manager
+    await this.terminalManager?.closeAllTerminals()
+    // This way the terminal manager will be set up again if we reconnect
+    this.terminalManager = null
+    // Close all file watchers managed by the file manager
+    await this.fileManager?.closeWatchers()
+    // This way the file manager will be set up again if we reconnect
+    this.fileManager = null
   }
 
   handlers(connection: { userId: string; isOwner: boolean; socket: Socket }) {
