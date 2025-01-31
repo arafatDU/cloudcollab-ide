@@ -46,6 +46,32 @@ export class TerminalManager {
     })
   }
 
+  async sendTerminalData(id: string, data: string): Promise<void> {
+    if (!this.terminals[id]) {
+      return
+    }
+
+    await this.terminals[id].sendData(data)
+  }
+
+  async closeTerminal(id: string): Promise<void> {
+    if (!this.terminals[id]) {
+      return
+    }
+
+    await this.terminals[id].close()
+    delete this.terminals[id]
+  }
+
+  async closeAllTerminals(): Promise<void> {
+    await Promise.all(
+      Object.entries(this.terminals).map(async ([key, terminal]) => {
+        await terminal.close()
+        delete this.terminals[key]
+      })
+    )
+  }
+
 }
 
 
