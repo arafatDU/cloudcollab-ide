@@ -19,6 +19,14 @@ const lockManager = new LockManager()
 // Define a type for SocketHandler functions
 type SocketHandler<T = Record<string, any>> = (args: T) => any
 
+// Extract port number from a string
+function extractPortNumber(inputString: string): number | null {
+  const cleanedString = inputString.replace(/\x1B\[[0-9;]*m/g, "")
+  const regex = /http:\/\/localhost:(\d+)/
+  const match = cleanedString.match(regex)
+  return match ? parseInt(match[1]) : null
+}
+
 
 export class Sandbox {
   // Sandbox properties:
@@ -186,7 +194,24 @@ export class Sandbox {
 
     // Handle creating a terminal session
     const handleCreateTerminal: SocketHandler = async ({ id }: any) => {
-      console.log("Creating terminal", id);
+      await lockManager.acquireLock(this.sandboxId, async () => {
+        await this.terminalManager?.createTerminal(
+          id,
+          (responseString: string) => {
+            connection.socket.emit("terminalResponse", {
+              id,
+              data: responseString,
+            })
+            const port = extractPortNumber(responseString)
+            if (port) {
+              connection.socket.emit(
+                "previewURL",
+                "https://" + this.container?.getHost(port)
+              )
+            }
+          }
+        )
+      })
     }
 
     // Handle resizing a terminal
