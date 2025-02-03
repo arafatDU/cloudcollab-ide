@@ -216,17 +216,17 @@ export class Sandbox {
 
     // Handle resizing a terminal
     const handleResizeTerminal: SocketHandler = ({ dimensions }: any) => {
-      console.log("Resizing terminal", dimensions);
+      this.terminalManager?.resizeTerminal(dimensions)
     }
 
     // Handle sending data to a terminal
     const handleTerminalData: SocketHandler = ({ id, data }: any) => {
-      console.log("Sending data to terminal", id, data);
+      return this.terminalManager?.sendTerminalData(id, data)
     }
 
     // Handle closing a terminal
     const handleCloseTerminal: SocketHandler = ({ id }: any) => {
-      console.log("Closing terminal", id);
+      return this.terminalManager?.closeTerminal(id)
     }
 
     // Handle downloading files by download button
