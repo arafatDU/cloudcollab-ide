@@ -38,4 +38,27 @@ export class SSHSocketClient {
     process.exit(0)
   }
 
+
+  // Method to establish the SSH connection
+  connect(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.conn
+        .on("ready", () => {
+          console.log("SSH connection established")
+          this.isConnected = true
+          resolve()
+        })
+        .on("error", (err) => {
+          console.error("SSH connection error:", err)
+          this.isConnected = false
+          reject(err)
+        })
+        .on("close", () => {
+          console.log("SSH connection closed")
+          this.isConnected = false
+        })
+        .connect(this.config)
+    })
+  }
+
 }
