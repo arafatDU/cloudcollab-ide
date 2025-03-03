@@ -61,4 +61,40 @@ export class SSHSocketClient {
     })
   }
 
+  // Method to send data through the SSH connection to the Unix socket
+  sendData(data: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      if (!this.isConnected) {
+        reject(new Error("SSH connection is not established"))
+        return
+      }
+
+      // Use netcat to send data to the Unix socket
+      this.conn.exec(
+        `echo "${data}" | nc -U ${this.socketPath}`,
+        (err, stream) => {
+          if (err) {
+            reject(err)
+            return
+          }
+
+          stream
+            .on("close", (code: number, signal: string) => {
+              reject(
+                new Error(
+                  `Stream closed with code ${code} and signal ${signal}`
+                )
+              )
+            })
+            .on("data", (data: Buffer) => {
+              resolve(data.toString())
+            })
+            .stderr.on("data", (data: Buffer) => {
+              reject(new Error(data.toString()))
+            })
+        }
+      )
+    })
+  }
+
 }
