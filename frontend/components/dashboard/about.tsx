@@ -22,26 +22,14 @@ export default function AboutModal({
         </DialogHeader>
         <div className="space-y-4">
           {/* <div className="text-sm text-muted-foreground">
-            Sandbox is an open-source cloud-based code editing environment with
+            CloudCollab IDE is an open-source cloud-based code editing environment with
             custom AI code autocompletion and real-time collaboration.
           </div> */}
-          <div className="text-sm text-muted-foreground">
-            Get help and support through our Discord community or by creating issues on GitHub:
-          </div>
+
           <div className="space-y-2">
             <div className="text-sm">
               <a 
-                href="https://discord.gitwit.dev/" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-primary hover:underline"
-              >
-                Join our Discord community →
-              </a>
-            </div>
-            <div className="text-sm">
-              <a 
-                href="https://github.com/jamesmurdza/sandbox/issues" 
+                href="https://github.com/arafatDU/cloudcollab-ide/issues" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-primary hover:underline"

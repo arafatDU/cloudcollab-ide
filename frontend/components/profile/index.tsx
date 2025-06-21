@@ -680,7 +680,7 @@ function EmptyState({
         {isOwnProfile && (
           <Button onClick={openModal}>
             <PlusCircle className="h-4 w-4 mr-2" />
-            Create Sandbox
+            Create Project
           </Button>
         )}
       </Card>

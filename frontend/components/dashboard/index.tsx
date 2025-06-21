@@ -96,7 +96,7 @@ export default function Dashboard({
             </Button> */}
           </div>
           <div className="flex flex-col">
-            <a target="_blank" href="https://github.com/jamesmurdza/sandbox">
+            <a target="_blank" href="https://github.com/arafatDU/cloudcollab-ide">
               <Button
                 variant="ghost"
                 className="justify-start w-full font-normal text-muted-foreground"
