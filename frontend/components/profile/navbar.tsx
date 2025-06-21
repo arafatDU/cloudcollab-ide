@@ -17,10 +17,8 @@ export default function ProfileNavbar({ userData }: { userData: User }) {
           <Image src={Logo} alt="Logo" width={36} height={36} />
         </Link>
         <h1 className="text-xl">
-          <span className="font-semibold">Sandbox</span>{" "}
-          <span className="text-xs font-medium text-muted-foreground">
-            by gitwit
-          </span>
+          <span className="font-semibold">CloudCollab IDE</span>{" "}
+          
         </h1>
       </div>
       <div className="flex items-center space-x-4">

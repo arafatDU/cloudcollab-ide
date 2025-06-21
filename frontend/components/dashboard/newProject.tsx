@@ -120,7 +120,7 @@ export default function NewProjectModal({
     >
       <DialogContent className="max-h-[95vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create A Sandbox</DialogTitle>
+          <DialogTitle>Create A Project</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-2 max-w-full overflow-hidden">
           <div className="flex items-center justify-end">
@@ -248,9 +248,9 @@ export default function NewProjectModal({
                     </SelectContent>
                   </Select>
                   <FormDescription>
-                    Note: All sandboxes cannot be seen by the public. Private
-                    sandboxes cannot be accessed by shared users that you add,
-                    while public sandboxes can.
+                    Note: All projects cannot be seen by the public. Private
+                    projects cannot be accessed by shared users that you add,
+                    while public projects can.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

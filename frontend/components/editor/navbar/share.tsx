@@ -72,10 +72,10 @@ export default function ShareSandboxModal({
       <DialogContent className="p-0">
         <div className={`p-6 ${shared.length > 0 ? "pb-3" : null} space-y-6`}>
           <DialogHeader>
-            <DialogTitle>Share Sandbox</DialogTitle>
+            <DialogTitle>Share Project</DialogTitle>
             {data.visibility === "private" ? (
               <DialogDescription className="text-sm text-muted-foreground">
-                This sandbox is private. Making it public will allow shared
+                This project is private. Making it public will allow shared
                 users to view and collaborate. You can still share & manage
                 access below.
               </DialogDescription>

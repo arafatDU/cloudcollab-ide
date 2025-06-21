@@ -10,22 +10,22 @@ import type { Metadata } from "next"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "Sandbox",
+  title: "CloudCollab IDE",
   description:
     "an open-source cloud-based code editing environment with custom AI code generation, live preview, real-time collaboration, and AI chat",
   openGraph: {
     type: "website",
-    url: "https://sandbox.gitwit.dev",
-    title: "Sandbox",
+    url: "https://cloudcollab-ide.vercel.app", 
+    title: "CloudCollab IDE",
     description:
       "an open-source cloud-based code editing environment with custom AI code generation, live preview, real-time collaboration, and AI chat",
   },
   twitter: {
-    site: "https://sandbox.gitwit.dev",
-    title: "Sandbox by Gitwit",
+    site: "https://x.com/arafathussainX",
+    title: "CloudCollab IDE ",
     description:
       "an open-source cloud-based code editing environment with custom AI code generation, live preview, real-time collaboration, and AI chat",
-    creator: "@gitwitdev",
+    creator: "@arafathussain",
   },
 }
 

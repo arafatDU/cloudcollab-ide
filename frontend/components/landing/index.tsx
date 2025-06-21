@@ -19,10 +19,11 @@ export default function Landing() {
               height={36}
               className="mr-2"
             />
+            <span className="text-xl">CloudCollab IDE</span>
           </div>
           <div className="flex items-center space-x-4">
             <Button variant="outline" size="icon" asChild>
-              <a href="https://x.com/gitwitdev" target="_blank">
+              <a href="https://x.com/arafathussainX" target="_blank">
                 <svg
                   width="1200"
                   height="1227"
@@ -46,7 +47,7 @@ export default function Landing() {
           A Collaborative + AI-Powered Code Environment
         </h1>
         {/* <p className="text-muted-foreground mt-4 text-center ">
-          Sandbox is an open-source cloud-based code editing environment with
+          Cloudcollab IDE is an open-source cloud-based code editing environment with
           custom AI code autocompletion and real-time collaboration.
         </p> */}
         <p className="text-muted-foreground mt-4 text-center ">
@@ -59,7 +60,7 @@ export default function Landing() {
             <CustomButton>Go To App</CustomButton>
           </Link>
           <a
-            href="https://github.com/jamesmurdza/sandbox"
+            href="https://github.com/arafatDU/cloudcollab-ide"
             target="_blank"
             className="group h-9 px-4 py-2 inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
           >

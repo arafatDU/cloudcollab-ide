@@ -65,7 +65,7 @@ export default function EditSandboxModal({
     setLoading(true)
     await updateSandbox({ id: data.id, ...values })
 
-    toast.success("Sandbox updated successfully")
+    toast.success("Project updated successfully")
 
     setLoading(false)
   }
@@ -81,7 +81,7 @@ export default function EditSandboxModal({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit Sandbox Info</DialogTitle>
+          <DialogTitle>Edit Project Info</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
@@ -129,7 +129,7 @@ export default function EditSandboxModal({
                   <Loader2 className="animate-spin mr-2 h-4 w-4" /> Loading...
                 </>
               ) : (
-                "Update Sandbox"
+                "Update Project"
               )}
             </Button>
           </form>
@@ -145,7 +145,7 @@ export default function EditSandboxModal({
               <Loader2 className="animate-spin mr-2 h-4 w-4" /> Loading...
             </>
           ) : (
-            "Delete Sandbox"
+            "Delete Project"
           )}
         </Button>
       </DialogContent>
